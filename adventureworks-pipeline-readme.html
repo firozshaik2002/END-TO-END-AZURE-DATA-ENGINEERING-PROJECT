@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AdventureWorks Azure Data Pipeline</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0d14;
+    --surface: #111520;
+    --surface2: #161c2d;
+    --border: rgba(99,132,255,0.15);
+    --bronze: #cd7f32;
+    --bronze-dim: rgba(205,127,50,0.12);
+    --silver: #a8b8d0;
+    --silver-dim: rgba(168,184,208,0.10);
+    --gold: #f5c842;
+    --gold-dim: rgba(245,200,66,0.10);
+    --accent: #6384ff;
+    --accent-dim: rgba(99,132,255,0.08);
+    --text: #e2e8f4;
+    --muted: #6b7a99;
+    --tag-bg: rgba(99,132,255,0.10);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(99,132,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(99,132,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 60px 32px 80px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 48px 48px 40px;
+    background: var(--surface);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 40px;
+  }
+
+  header::after {
+    content: '';
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(99,132,255,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 800;
+    line-height: 1.1;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+
+  h1 span {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 28px;
+    line-height: 1.6;
+  }
+
+  .badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .badge {
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 2px;
+    border: 1px solid;
+    letter-spacing: 0.05em;
+  }
+  .badge-blue  { border-color: rgba(99,132,255,0.4); color: #99b0ff; background: var(--accent-dim); }
+  .badge-green { border-color: rgba(72,199,142,0.4); color: #72e8a8; background: rgba(72,199,142,0.06); }
+
+  /* ── SECTION TITLES ── */
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 20px;
+  }
+
+  /* ── PIPELINE FLOW ── */
+  .pipeline-block {
+    margin-bottom: 40px;
+  }
+
+  .pipeline-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .layer {
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    gap: 0 24px;
+    position: relative;
+  }
+
+  .layer-connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .layer-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+    border: 1px solid;
+    position: relative;
+    z-index: 1;
+  }
+
+  .icon-bronze { background: var(--bronze-dim); border-color: rgba(205,127,50,0.35); }
+  .icon-silver { background: var(--silver-dim); border-color: rgba(168,184,208,0.3); }
+  .icon-gold   { background: var(--gold-dim);   border-color: rgba(245,200,66,0.35); }
+  .icon-bi     { background: rgba(255,186,8,0.08); border-color: rgba(255,186,8,0.3); }
+
+  .vline {
+    width: 1px;
+    flex: 1;
+    min-height: 24px;
+    background: var(--border);
+    margin: 0 auto;
+  }
+
+  .layer-body {
+    padding: 0 0 32px;
+  }
+
+  .layer-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-top: 10px;
+  }
+
+  .layer-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .layer-sub {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .layer-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px 20px;
+  }
+
+  .layer-card p {
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--silver);
+    margin-bottom: 12px;
+  }
+
+  .layer-card p:last-child { margin-bottom: 0; }
+
+  .pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .pill {
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 2px;
+    border: 1px solid rgba(99,132,255,0.2);
+    color: #99b0ff;
+    background: rgba(99,132,255,0.06);
+    letter-spacing: 0.03em;
+  }
+
+  .pill-bronze { border-color: rgba(205,127,50,0.3); color: #e8a96a; background: var(--bronze-dim); }
+  .pill-silver { border-color: rgba(168,184,208,0.3); color: #c8d8ec; background: var(--silver-dim); }
+  .pill-gold   { border-color: rgba(245,200,66,0.3);  color: #f5d96a; background: var(--gold-dim); }
+
+  /* ── TECH GRID ── */
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+
+  .tech-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  .tech-card:hover {
+    border-color: rgba(99,132,255,0.35);
+    background: var(--surface2);
+  }
+
+  .tech-icon { font-size: 20px; margin-bottom: 8px; }
+  .tech-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  .tech-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+  /* ── CONCEPTS ── */
+  .concepts-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 40px;
+  }
+
+  .concept-tag {
+    font-size: 11px;
+    padding: 6px 14px;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    color: var(--silver);
+    background: var(--surface);
+    letter-spacing: 0.04em;
+  }
+
+  /* ── INSIGHTS ── */
+  .insights-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px 28px;
+    margin-bottom: 40px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .insights-block::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--gold), var(--accent));
+  }
+
+  .insight-row {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .insight-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+  .insight-month {
+    font-size: 11px;
+    color: var(--gold);
+    width: 90px;
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+
+  .insight-bar-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .insight-bar {
+    height: 6px;
+    border-radius: 1px;
+    background: linear-gradient(90deg, var(--accent), rgba(99,132,255,0.3));
+  }
+
+  .insight-note {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* ── ARCHITECTURE NOTE ── */
+  .arch-note {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px 28px;
+    margin-bottom: 40px;
+  }
+
+  .arch-note p {
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--silver);
+  }
+
+  .arch-note strong { color: #fff; }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding-top: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: gap;
+    gap: 12px;
+  }
+
+  .footer-left { font-size: 11px; color: var(--muted); }
+  .footer-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .footer-tag {
+    font-size: 10px;
+    color: var(--muted);
+    padding: 2px 8px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+  }
+
+  /* Animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  header, .pipeline-block, .tech-grid, .insights-block, .arch-note {
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .pipeline-block { animation-delay: 0.1s; }
+  .tech-grid      { animation-delay: 0.2s; }
+  .insights-block { animation-delay: 0.25s; }
+  .arch-note      { animation-delay: 0.3s; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header>
+    <div class="eyebrow">// Portfolio Project · Azure Data Engineering</div>
+    <h1>AdventureWorks<br><span>Data Pipeline</span></h1>
+    <p class="subtitle">End-to-end Azure pipeline · Medallion Architecture · Power BI analytics</p>
+    <div class="badges">
+      <span class="badge badge-blue">Azure Data Factory</span>
+      <span class="badge badge-blue">Databricks · PySpark</span>
+      <span class="badge badge-blue">Synapse Analytics</span>
+      <span class="badge badge-blue">Power BI</span>
+      <span class="badge badge-green">✓ Production-Ready Pattern</span>
+    </div>
+  </header>
+
+  <!-- PIPELINE -->
+  <div class="pipeline-block">
+    <div class="section-label">Pipeline Architecture</div>
+    <h2>Medallion Layers</h2>
+
+    <div class="pipeline-flow">
+
+      <!-- BRONZE -->
+      <div class="layer">
+        <div class="layer-connector">
+          <div class="layer-icon icon-bronze">🥉</div>
+          <div class="vline"></div>
+        </div>
+        <div class="layer-body">
+          <div class="layer-header">
+            <span class="layer-title">Bronze Layer</span>
+            <span class="layer-sub">Raw ingestion · Azure Data Factory</span>
+          </div>
+          <div class="layer-card">
+            <p>Dynamically ingests 10 CSV files from GitHub using a metadata-driven <strong>Lookup → ForEach</strong> pattern. Zero hardcoded paths — fully parameterized pipeline writes raw files to Azure Data Lake Gen2.</p>
+            <div class="pill-row">
+              <span class="pill pill-bronze">Lookup Activity</span>
+              <span class="pill pill-bronze">ForEach Loop</span>
+              <span class="pill pill-bronze">HTTP Connector</span>
+              <span class="pill pill-bronze">ADLS Gen2</span>
+              <span class="pill pill-bronze">Parameterized</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SILVER -->
+      <div class="layer">
+        <div class="layer-connector">
+          <div class="layer-icon icon-silver">🥈</div>
+          <div class="vline"></div>
+        </div>
+        <div class="layer-body">
+          <div class="layer-header">
+            <span class="layer-title">Silver Layer</span>
+            <span class="layer-sub">Transformation · Azure Databricks PySpark</span>
+          </div>
+          <div class="layer-card">
+            <p>PySpark notebooks clean and enrich the raw data. Derived columns <code>FullName</code>, <code>Month</code>, <code>Year</code> are added alongside type casting, SKU normalization, and order number standardization. Output written as Snappy-compressed Parquet.</p>
+            <div class="pill-row">
+              <span class="pill pill-silver">PySpark</span>
+              <span class="pill pill-silver">Derived Columns</span>
+              <span class="pill pill-silver">Type Casting</span>
+              <span class="pill pill-silver">SKU Normalization</span>
+              <span class="pill pill-silver">Snappy Parquet</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GOLD -->
+      <div class="layer">
+        <div class="layer-connector">
+          <div class="layer-icon icon-gold">🥇</div>
+          <div class="vline"></div>
+        </div>
+        <div class="layer-body">
+          <div class="layer-header">
+            <span class="layer-title">Gold Layer</span>
+            <span class="layer-sub">Serving · Azure Synapse Analytics</span>
+          </div>
+          <div class="layer-card">
+            <p>Synapse serverless SQL exposes Silver Parquet files as views via <code>OPENROWSET</code>. A materialized external table <code>gold.extsales</code> is created using Database Scoped Credentials and Managed Identity for secure, performant BI access.</p>
+            <div class="pill-row">
+              <span class="pill pill-gold">Serverless SQL</span>
+              <span class="pill pill-gold">OPENROWSET</span>
+              <span class="pill pill-gold">External Tables</span>
+              <span class="pill pill-gold">Managed Identity</span>
+              <span class="pill pill-gold">Scoped Credentials</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BI -->
+      <div class="layer">
+        <div class="layer-connector">
+          <div class="layer-icon icon-bi">📊</div>
+        </div>
+        <div class="layer-body">
+          <div class="layer-header">
+            <span class="layer-title">Analytics Layer</span>
+            <span class="layer-sub">Visualization · Power BI</span>
+          </div>
+          <div class="layer-card">
+            <p>Power BI connects directly to <code>gold.extsales</code>, surfacing monthly order volume trends via line charts — revealing seasonal patterns across the full annual sales cycle.</p>
+            <div class="pill-row">
+              <span class="pill">Power BI</span>
+              <span class="pill">Direct Query</span>
+              <span class="pill">Line Charts</span>
+              <span class="pill">Monthly Trends</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- INSIGHTS -->
+  <div class="section-label">Key Findings</div>
+  <h2>Monthly Order Patterns</h2>
+  <div class="insights-block">
+    <div class="insight-row">
+      <span class="insight-month">February</span>
+      <div class="insight-bar-wrap">
+        <div class="insight-bar" style="width:30%"></div>
+        <span class="insight-note">Notable dip — post-holiday demand contraction</span>
+      </div>
+    </div>
+    <div class="insight-row">
+      <span class="insight-month">March</span>
+      <div class="insight-bar-wrap">
+        <div class="insight-bar" style="width:65%"></div>
+        <span class="insight-note">Sharp recovery spike — Q1 purchasing resurgence</span>
+      </div>
+    </div>
+    <div class="insight-row">
+      <span class="insight-month">Summer (Jun–Aug)</span>
+      <div class="insight-bar-wrap">
+        <div class="insight-bar" style="width:90%"></div>
+        <span class="insight-note">Peak volume — seasonal cycling demand at maximum</span>
+      </div>
+    </div>
+    <div class="insight-row">
+      <span class="insight-month">Year-end</span>
+      <div class="insight-bar-wrap">
+        <div class="insight-bar" style="width:40%"></div>
+        <span class="insight-note">Gradual decline — inventory wind-down pattern</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TECH STACK -->
+  <div class="section-label">Technology</div>
+  <h2>Stack Overview</h2>
+  <div class="tech-grid">
+    <div class="tech-card">
+      <div class="tech-icon">🏭</div>
+      <div class="tech-name">Azure Data Factory</div>
+      <div class="tech-desc">Metadata-driven ingestion with Lookup + ForEach orchestration</div>
+    </div>
+    <div class="tech-card">
+      <div class="tech-icon">🌊</div>
+      <div class="tech-name">ADLS Gen2</div>
+      <div class="tech-desc">Hierarchical storage for Bronze / Silver / Gold zones</div>
+    </div>
+    <div class="tech-card">
+      <div class="tech-icon">⚡</div>
+      <div class="tech-name">Azure Databricks</div>
+      <div class="tech-desc">PySpark transformations, enrichment, and Parquet output</div>
+    </div>
+    <div class="tech-card">
+      <div class="tech-icon">🔍</div>
+      <div class="tech-name">Synapse Analytics</div>
+      <div class="tech-desc">Serverless SQL views and external table materialization</div>
+    </div>
+    <div class="tech-card">
+      <div class="tech-icon">📊</div>
+      <div class="tech-name">Power BI</div>
+      <div class="tech-desc">Interactive dashboards connected to the Gold layer</div>
+    </div>
+    <div class="tech-card">
+      <div class="tech-icon">🐙</div>
+      <div class="tech-name">GitHub</div>
+      <div class="tech-desc">Source CSV data served over HTTP to ADF pipeline</div>
+    </div>
+  </div>
+
+  <!-- KEY CONCEPTS -->
+  <div class="section-label">Concepts Practiced</div>
+  <div class="concepts-grid">
+    <span class="concept-tag">Medallion Architecture</span>
+    <span class="concept-tag">Parameterized Pipelines</span>
+    <span class="concept-tag">OPENROWSET</span>
+    <span class="concept-tag">External Tables</span>
+    <span class="concept-tag">Managed Identity</span>
+    <span class="concept-tag">Database Scoped Credentials</span>
+    <span class="concept-tag">Snappy Parquet Compression</span>
+    <span class="concept-tag">Metadata-Driven Ingestion</span>
+    <span class="concept-tag">PySpark Column Derivation</span>
+    <span class="concept-tag">Serverless SQL Pools</span>
+  </div>
+
+  <!-- ARCHITECTURE NOTE -->
+  <div class="section-label">Why Medallion</div>
+  <div class="arch-note">
+    <p>
+      The <strong>Medallion Architecture</strong> keeps raw data intact in the Bronze layer, making every transformation testable and auditable. Silver handles all enrichment and cleaning logic in isolation, so failures never corrupt source data. The Gold layer stays intentionally thin — just the views and external tables BI tools need — keeping query performance high and the serving surface clean.<br><br>
+      Each layer can be reprocessed independently, which makes debugging and backfilling straightforward. For teams learning Azure data engineering, this pattern is a reliable foundation that scales from prototype to production without major restructuring.
+    </p>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-left">AdventureWorks Cycles · Azure Data Engineering Portfolio</div>
+    <div class="footer-tags">
+      <span class="footer-tag">#Azure</span>
+      <span class="footer-tag">#DataEngineering</span>
+      <span class="footer-tag">#Databricks</span>
+      <span class="footer-tag">#PowerBI</span>
+      <span class="footer-tag">#OpenToWork</span>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
